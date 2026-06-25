@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Irregular Verbs Popcorn Sort</title>
+  <style>
+    :root {
+      --ink: #1f1724;
+      --cream: #fffdf6;
+      --popcorn: #ffe88a;
+      --butter: #ffd35a;
+      --red: #ff7a8a;
+      --blue: #b9e8ff;
+      --green: #63df7e;
+      --mint: #9cffb7;
+      --shadow: 0 18px 45px rgba(31, 23, 36, .18);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        linear-gradient(135deg, rgba(156, 255, 183, .9), rgba(255, 244, 183, .9)),
+        repeating-linear-gradient(45deg, rgba(255,255,255,.35) 0 14px, transparent 14px 28px);
+    }
+
+    button {
+      font: inherit;
+      cursor: pointer;
+      border: 0;
+    }
+
+    .page {
+      width: min(100%, 1200px);
+      margin: 0 auto;
+      padding: 22px;
+    }
+
+    .game-frame {
+      min-height: calc(100vh - 44px);
+      padding: clamp(18px, 3vw, 32px);
+      border: 12px solid #98f6aa;
+      background: var(--cream);
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      gap: 18px;
+    }
+
+    header {
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2.6rem, 7vw, 5.6rem);
+      line-height: .9;
+      text-transform: uppercase;
+      letter-spacing: .02em;
+      text-shadow: 4px 4px 0 #d9f7ff;
+    }
+
+    h1 span {
+      color: #1290c7;
+      text-shadow: 4px 4px 0 #ffd6df;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      padding: 12px 14px;
+      border: 4px solid var(--ink);
+      border-radius: 18px;
+      background: #fff;
+    }
+
+    .score-pill {
+      min-width: 160px;
+      padding: 10px 14px;
+      border: 3px solid var(--ink);
+      border-radius: 999px;
+      background: #fff4c9;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .action-btn {
+      padding: 10px 16px;
+      border: 3px solid var(--ink);
+      border-radius: 999px;
+      background: #d9f7ff;
+      font-weight: 900;
+      text-transform: uppercase;
+      box-shadow: 4px 4px 0 var(--ink);
+    }
+
+    .action-btn:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 5px 5px 0 var(--ink);
+    }
+
+    .popcorn-bank {
+      min-height: 145px;
+      padding: 14px;
+      border: 4px dashed #f0c84d;
+      border-radius: 22px;
+      background:
+        radial-gradient(circle at 16px 18px, rgba(255, 211, 90, .35) 0 12px, transparent 13px),
+        radial-gradient(circle at 70px 46px, rgba(255, 232, 138, .42) 0 14px, transparent 15px),
+        #fffaf0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-content: flex-start;
+      justify-content: center;
+    }
+
+    .popcorn {
+      position: relative;
+      min-width: 108px;
+      min-height: 56px;
+      padding: 15px 17px;
+      border: 0;
+      border-radius: 48% 52% 45% 55% / 52% 44% 56% 48%;
+      background:
+        radial-gradient(circle at 20% 26%, #fff8cf 0 18%, transparent 19%),
+        radial-gradient(circle at 72% 26%, #fff8cf 0 17%, transparent 18%),
+        radial-gradient(circle at 50% 70%, #fff3ae 0 28%, transparent 29%),
+        var(--popcorn);
+      color: var(--ink);
+      font-size: 1.25rem;
+      font-weight: 900;
+      box-shadow: 0 5px 0 #e7b848, 0 9px 16px rgba(31, 23, 36, .16);
+      user-select: none;
+      touch-action: none;
+    }
+
+    .popcorn::after {
+      content: "";
+      position: absolute;
+      width: 9px;
+      height: 9px;
+      right: 17px;
+      top: 15px;
+      border-radius: 50%;
+      background: rgba(255, 190, 45, .55);
+      box-shadow: -32px 6px 0 rgba(255, 190, 45, .35);
+    }
+
+    .popcorn.dragging {
+      opacity: .55;
+      transform: scale(.98);
+    }
+
+    .popcorn.correct {
+      outline: 5px solid rgba(47, 158, 99, .55);
+    }
+
+    .popcorn.wrong {
+      outline: 5px solid rgba(255, 74, 104, .55);
+    }
+
+    .boxes {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+      align-items: end;
+    }
+
+    .box-wrap {
+      min-width: 0;
+      display: grid;
+      gap: 10px;
+      align-content: end;
+    }
+
+    .box-label {
+      width: fit-content;
+      margin: 0 auto -10px;
+      padding: 8px 14px;
+      border: 4px solid var(--ink);
+      border-radius: 10px;
+      background: #fff;
+      font-size: clamp(1.15rem, 2vw, 1.8rem);
+      font-weight: 900;
+      text-transform: uppercase;
+      transform: rotate(-6deg);
+      z-index: 2;
+    }
+
+    .box-wrap:nth-child(2) .box-label {
+      transform: rotate(0deg);
+    }
+
+    .box-wrap:nth-child(3) .box-label {
+      transform: rotate(6deg);
+    }
+
+    .popcorn-box {
+      position: relative;
+      min-height: 390px;
+      padding: 88px 14px 18px;
+      border-radius: 24px 24px 18px 18px;
+      border: 5px solid #ededed;
+      background: white;
+      overflow: hidden;
+      box-shadow: inset 0 -12px 0 rgba(31, 23, 36, .08), 0 15px 28px rgba(31, 23, 36, .16);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-content: flex-start;
+      justify-content: center;
+    }
+
+    .popcorn-box::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, transparent 0 13%, var(--stripe) 13% 30%, transparent 30% 47%, var(--stripe) 47% 64%, transparent 64% 81%, var(--stripe) 81% 100%);
+      opacity: .95;
+      z-index: 0;
+    }
+
+    .popcorn-box::after {
+      content: "";
+      position: absolute;
+      left: -6%;
+      right: -6%;
+      top: -10px;
+      height: 96px;
+      background:
+        radial-gradient(circle at 8% 70%, var(--popcorn) 0 34px, transparent 35px),
+        radial-gradient(circle at 20% 35%, var(--butter) 0 44px, transparent 45px),
+        radial-gradient(circle at 36% 70%, var(--popcorn) 0 42px, transparent 43px),
+        radial-gradient(circle at 52% 35%, var(--butter) 0 49px, transparent 50px),
+        radial-gradient(circle at 68% 70%, var(--popcorn) 0 42px, transparent 43px),
+        radial-gradient(circle at 84% 35%, var(--butter) 0 44px, transparent 45px),
+        radial-gradient(circle at 96% 70%, var(--popcorn) 0 34px, transparent 35px);
+      z-index: 1;
+    }
+
+    .popcorn-box > .popcorn {
+      z-index: 2;
+      min-width: 92px;
+      font-size: 1.05rem;
+    }
+
+    .popcorn-box[data-type="infinitive"] {
+      --stripe: var(--red);
+    }
+
+    .popcorn-box[data-type="past"] {
+      --stripe: var(--blue);
+    }
+
+    .popcorn-box[data-type="participle"] {
+      --stripe: var(--green);
+    }
+
+    .popcorn-box.drag-over {
+      outline: 6px solid rgba(255, 211, 90, .9);
+      outline-offset: 4px;
+    }
+
+    .feedback {
+      min-height: 44px;
+      padding: 10px 14px;
+      border: 3px solid var(--ink);
+      border-radius: 16px;
+      background: #fff;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .activity-divider {
+      margin-top: 18px;
+      padding-top: 22px;
+      border-top: 7px dotted #ffd35a;
+    }
+
+    .activity-title {
+      margin: 0 0 14px;
+      text-align: center;
+      font-size: clamp(2rem, 5vw, 4.1rem);
+      line-height: .95;
+      text-transform: uppercase;
+      text-shadow: 3px 3px 0 #ffd6df;
+    }
+
+    .activity-title span {
+      color: #1290c7;
+    }
+
+    .regular-layout {
+      display: grid;
+      grid-template-columns: 1fr 1.1fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .verb-bank,
+    .sort-tray {
+      min-height: 170px;
+      padding: 14px;
+      border-radius: 22px;
+      border: 4px solid var(--ink);
+      background: #fff;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-content: flex-start;
+      justify-content: center;
+    }
+
+    .verb-bank {
+      background:
+        radial-gradient(circle at 24px 24px, rgba(255, 122, 138, .18) 0 18px, transparent 19px),
+        radial-gradient(circle at 86px 62px, rgba(185, 232, 255, .45) 0 20px, transparent 21px),
+        #fffaf0;
+    }
+
+    .verb-chip {
+      min-width: 112px;
+      min-height: 54px;
+      padding: 12px 15px;
+      border: 3px solid var(--ink);
+      border-radius: 999px;
+      background: linear-gradient(#fff, #ffe8f0);
+      color: var(--ink);
+      font-size: 1.05rem;
+      font-weight: 900;
+      box-shadow: 0 5px 0 rgba(31, 23, 36, .18);
+      user-select: none;
+      touch-action: none;
+    }
+
+    .verb-chip.dragging {
+      opacity: .55;
+    }
+
+    .verb-chip.correct {
+      outline: 5px solid rgba(47, 158, 99, .55);
+    }
+
+    .verb-chip.wrong {
+      outline: 5px solid rgba(255, 74, 104, .55);
+    }
+
+    .regular-zones {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .sort-column {
+      display: grid;
+      gap: 8px;
+    }
+
+    .sort-label {
+      width: fit-content;
+      margin: 0 auto;
+      padding: 8px 13px;
+      border: 4px solid var(--ink);
+      border-radius: 12px;
+      background: #fff;
+      font-size: clamp(1rem, 2vw, 1.45rem);
+      font-weight: 900;
+      text-transform: uppercase;
+      transform: rotate(-3deg);
+    }
+
+    .sort-column:nth-child(2) .sort-label {
+      transform: rotate(3deg);
+    }
+
+    .sort-tray {
+      min-height: 250px;
+      border-style: dashed;
+      background:
+        repeating-linear-gradient(45deg, rgba(255,255,255,.55) 0 14px, rgba(255,255,255,.2) 14px 28px),
+        var(--tray-color);
+    }
+
+    .sort-tray[data-kind="regular"] {
+      --tray-color: #d7f8ff;
+    }
+
+    .sort-tray[data-kind="irregular"] {
+      --tray-color: #ffe0eb;
+    }
+
+    .sort-tray.drag-over,
+    .verb-bank.drag-over {
+      outline: 6px solid rgba(255, 211, 90, .9);
+      outline-offset: 4px;
+    }
+
+    @media (max-width: 900px) {
+      .boxes,
+      .regular-layout,
+      .regular-zones {
+        grid-template-columns: 1fr;
+      }
+
+      .popcorn-box {
+        min-height: 260px;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .page {
+        padding: 10px;
+      }
+
+      .game-frame {
+        border-width: 7px;
+      }
+
+      .top-bar {
+        justify-content: center;
+      }
+
+      .score-pill {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="game-frame">
+      <header>
+        <h1>Irregular <span>Verbs</span></h1>
+      </header>
+
+      <section class="top-bar" aria-label="Game controls">
+        <div id="score" class="score-pill">Score: 0 / 18</div>
+        <div class="actions">
+          <button id="checkBtn" class="action-btn">Check Answers</button>
+          <button id="resetBtn" class="action-btn">Reset</button>
+          <button id="shuffleBtn" class="action-btn">Shuffle Popcorn</button>
+        </div>
+      </section>
+
+      <section id="popcornBank" class="popcorn-bank" aria-label="Verb popcorn pieces"></section>
+
+      <section class="boxes" aria-label="Popcorn sorting boxes">
+        <article class="box-wrap">
+          <div class="box-label">Present / Base</div>
+          <div class="popcorn-box" data-type="infinitive" aria-label="Present or base form popcorn box"></div>
+        </article>
+
+        <article class="box-wrap">
+          <div class="box-label">Past Simple</div>
+          <div class="popcorn-box" data-type="past" aria-label="Past simple popcorn box"></div>
+        </article>
+
+        <article class="box-wrap">
+          <div class="box-label">Past Participle</div>
+          <div class="popcorn-box" data-type="participle" aria-label="Past participle popcorn box"></div>
+        </article>
+      </section>
+
+      <div id="feedback" class="feedback">Drag each popcorn verb into the correct box.</div>
+
+      <section class="activity-divider" aria-label="Regular and irregular verb practice">
+        <h2 class="activity-title">Regular or <span>Irregular?</span></h2>
+
+        <section class="top-bar" aria-label="Regular and irregular controls">
+          <div id="regularScore" class="score-pill">Score: 0 / 18</div>
+          <div class="actions">
+            <button id="regularCheckBtn" class="action-btn">Check Verbs</button>
+            <button id="regularResetBtn" class="action-btn">Reset</button>
+            <button id="regularShuffleBtn" class="action-btn">Shuffle</button>
+          </div>
+        </section>
+
+        <div class="regular-layout">
+          <section id="verbBank" class="verb-bank" aria-label="Regular and irregular verb cards"></section>
+
+          <section class="regular-zones" aria-label="Regular and irregular sorting trays">
+            <article class="sort-column">
+              <div class="sort-label">Regular Verbs</div>
+              <div class="sort-tray" data-kind="regular" aria-label="Regular verbs tray"></div>
+            </article>
+
+            <article class="sort-column">
+              <div class="sort-label">Irregular Verbs</div>
+              <div class="sort-tray" data-kind="irregular" aria-label="Irregular verbs tray"></div>
+            </article>
+          </section>
+        </div>
+
+        <div id="regularFeedback" class="feedback">Sort each verb into regular or irregular.</div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const irregularVerbFamilies = [
+      ["begin", "began", "begun"],
+      ["eat", "ate", "eaten"],
+      ["give", "gave", "given"],
+      ["fly", "flew", "flown"],
+      ["drink", "drank", "drunk"],
+      ["wear", "wore", "worn"],
+      ["take", "took", "taken"],
+      ["write", "wrote", "written"],
+      ["see", "saw", "seen"],
+      ["go", "went", "gone"],
+      ["speak", "spoke", "spoken"],
+      ["break", "broke", "broken"],
+      ["choose", "chose", "chosen"],
+      ["drive", "drove", "driven"],
+      ["fall", "fell", "fallen"],
+      ["forget", "forgot", "forgotten"],
+      ["grow", "grew", "grown"],
+      ["know", "knew", "known"],
+      ["ride", "rode", "ridden"],
+      ["steal", "stole", "stolen"],
+      ["swim", "swam", "swum"],
+      ["throw", "threw", "thrown"],
+      ["blow", "blew", "blown"],
+      ["draw", "drew", "drawn"]
+    ];
+
+    const forms = ["infinitive", "past", "participle"];
+    const familiesPerRound = 8;
+    let activeVerbs = [];
+
+    const bank = document.getElementById("popcornBank");
+    const boxes = [...document.querySelectorAll(".popcorn-box")];
+    const feedback = document.getElementById("feedback");
+    const score = document.getElementById("score");
+    const checkBtn = document.getElementById("checkBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const shuffleBtn = document.getElementById("shuffleBtn");
+
+    function shuffle(items) {
+      const copy = [...items];
+      for (let i = copy.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function makePopcorn(item) {
+      const button = document.createElement("button");
+      button.className = "popcorn";
+      button.type = "button";
+      button.draggable = true;
+      button.textContent = item.word;
+      button.dataset.type = item.type;
+      button.dataset.word = item.word;
+      button.dataset.id = item.id;
+
+      button.addEventListener("dragstart", event => {
+        button.classList.add("dragging");
+        event.dataTransfer.setData("text/plain", item.id);
+      });
+
+      button.addEventListener("dragend", () => {
+        button.classList.remove("dragging");
+      });
+
+      button.addEventListener("click", () => {
+        const nextBox = getNextBox(button);
+        nextBox.appendChild(button);
+        clearMarks();
+      });
+
+      return button;
+    }
+
+    function getNextBox(button) {
+      const current = button.parentElement;
+      if (current === bank) return boxes[0];
+      const index = boxes.indexOf(current);
+      return boxes[index + 1] || bank;
+    }
+
+    function clearMarks() {
+      document.querySelectorAll(".popcorn").forEach(piece => {
+        piece.classList.remove("correct", "wrong");
+      });
+      feedback.textContent = "Keep sorting. Then check your answers.";
+    }
+
+    function render() {
+      bank.innerHTML = "";
+      boxes.forEach(box => {
+        box.innerHTML = "";
+        box.classList.remove("drag-over");
+      });
+
+      activeVerbs = shuffle(irregularVerbFamilies)
+        .slice(0, familiesPerRound)
+        .flatMap(family => family.map((word, index) => ({
+          id: `${family[0]}-${forms[index]}`,
+          word,
+          type: forms[index]
+        })));
+
+      shuffle(activeVerbs).forEach(item => {
+        bank.appendChild(makePopcorn(item));
+      });
+
+      feedback.textContent = "Drag each popcorn verb into the correct box.";
+      score.textContent = `Score: 0 / ${activeVerbs.length}`;
+    }
+
+    boxes.concat(bank).forEach(zone => {
+      zone.addEventListener("dragover", event => {
+        event.preventDefault();
+        zone.classList.add("drag-over");
+      });
+
+      zone.addEventListener("dragleave", () => {
+        zone.classList.remove("drag-over");
+      });
+
+      zone.addEventListener("drop", event => {
+        event.preventDefault();
+        zone.classList.remove("drag-over");
+        const id = event.dataTransfer.getData("text/plain");
+        const piece = document.querySelector(`.popcorn[data-id="${id}"]`);
+        if (piece) {
+          zone.appendChild(piece);
+          clearMarks();
+        }
+      });
+    });
+
+    function checkAnswers() {
+      let correct = 0;
+
+      document.querySelectorAll(".popcorn").forEach(piece => {
+        const parentType = piece.parentElement.dataset.type;
+        const isCorrect = parentType === piece.dataset.type;
+        piece.classList.toggle("correct", isCorrect);
+        piece.classList.toggle("wrong", !isCorrect);
+        if (isCorrect) correct += 1;
+      });
+
+      score.textContent = `Score: ${correct} / ${activeVerbs.length}`;
+
+      if (correct === activeVerbs.length) {
+        feedback.textContent = "Perfect! Every popcorn verb is in the correct box.";
+      } else {
+        feedback.textContent = `${correct} correct. Move the highlighted verbs and try again.`;
+      }
+    }
+
+    checkBtn.addEventListener("click", checkAnswers);
+    resetBtn.addEventListener("click", render);
+    shuffleBtn.addEventListener("click", render);
+
+    render();
+
+    const regularVerbCards = [
+      { word: "play", kind: "regular" },
+      { word: "visit", kind: "regular" },
+      { word: "watch", kind: "regular" },
+      { word: "study", kind: "regular" },
+      { word: "clean", kind: "regular" },
+      { word: "open", kind: "regular" },
+      { word: "want", kind: "regular" },
+      { word: "live", kind: "regular" },
+      { word: "stop", kind: "regular" },
+      { word: "listen", kind: "regular" },
+      { word: "cook", kind: "regular" },
+      { word: "talk", kind: "regular" },
+      { word: "eat", kind: "irregular" },
+      { word: "go", kind: "irregular" },
+      { word: "buy", kind: "irregular" },
+      { word: "see", kind: "irregular" },
+      { word: "write", kind: "irregular" },
+      { word: "make", kind: "irregular" },
+      { word: "take", kind: "irregular" },
+      { word: "give", kind: "irregular" },
+      { word: "come", kind: "irregular" },
+      { word: "begin", kind: "irregular" },
+      { word: "drink", kind: "irregular" },
+      { word: "fly", kind: "irregular" }
+    ];
+
+    const verbBank = document.getElementById("verbBank");
+    const sortTrays = [...document.querySelectorAll(".sort-tray")];
+    const regularScore = document.getElementById("regularScore");
+    const regularFeedback = document.getElementById("regularFeedback");
+    const regularCheckBtn = document.getElementById("regularCheckBtn");
+    const regularResetBtn = document.getElementById("regularResetBtn");
+    const regularShuffleBtn = document.getElementById("regularShuffleBtn");
+
+    function makeVerbChip(item) {
+      const button = document.createElement("button");
+      button.className = "verb-chip";
+      button.type = "button";
+      button.draggable = true;
+      button.textContent = item.word;
+      button.dataset.kind = item.kind;
+      button.dataset.word = item.word;
+      button.dataset.id = `${item.kind}-${item.word}`;
+
+      button.addEventListener("dragstart", event => {
+        button.classList.add("dragging");
+        event.dataTransfer.setData("text/plain", `${item.kind}-${item.word}`);
+      });
+
+      button.addEventListener("dragend", () => {
+        button.classList.remove("dragging");
+      });
+
+      button.addEventListener("click", () => {
+        const nextZone = getNextRegularZone(button);
+        nextZone.appendChild(button);
+        clearRegularMarks();
+      });
+
+      return button;
+    }
+
+    function getNextRegularZone(button) {
+      const current = button.parentElement;
+      if (current === verbBank) return sortTrays[0];
+      const index = sortTrays.indexOf(current);
+      return sortTrays[index + 1] || verbBank;
+    }
+
+    function clearRegularMarks() {
+      document.querySelectorAll(".verb-chip").forEach(chip => {
+        chip.classList.remove("correct", "wrong");
+      });
+      regularFeedback.textContent = "Keep sorting. Then check your verbs.";
+    }
+
+    function renderRegularActivity() {
+      verbBank.innerHTML = "";
+      sortTrays.forEach(tray => {
+        tray.innerHTML = "";
+        tray.classList.remove("drag-over");
+      });
+
+      shuffle(regularVerbCards).forEach(item => {
+        verbBank.appendChild(makeVerbChip(item));
+      });
+
+      regularScore.textContent = `Score: 0 / ${regularVerbCards.length}`;
+      regularFeedback.textContent = "Sort each verb into regular or irregular.";
+    }
+
+    [verbBank, ...sortTrays].forEach(zone => {
+      zone.addEventListener("dragover", event => {
+        event.preventDefault();
+        zone.classList.add("drag-over");
+      });
+
+      zone.addEventListener("dragleave", () => {
+        zone.classList.remove("drag-over");
+      });
+
+      zone.addEventListener("drop", event => {
+        event.preventDefault();
+        zone.classList.remove("drag-over");
+        const id = event.dataTransfer.getData("text/plain");
+        const chip = document.querySelector(`.verb-chip[data-id="${id}"]`);
+        if (chip) {
+          zone.appendChild(chip);
+          clearRegularMarks();
+        }
+      });
+    });
+
+    function checkRegularAnswers() {
+      let correct = 0;
+
+      document.querySelectorAll(".verb-chip").forEach(chip => {
+        const parentKind = chip.parentElement.dataset.kind;
+        const isCorrect = parentKind === chip.dataset.kind;
+        chip.classList.toggle("correct", isCorrect);
+        chip.classList.toggle("wrong", !isCorrect);
+        if (isCorrect) correct += 1;
+      });
+
+      regularScore.textContent = `Score: ${correct} / ${regularVerbCards.length}`;
+
+      if (correct === regularVerbCards.length) {
+        regularFeedback.textContent = "Excellent! All verbs are sorted correctly.";
+      } else {
+        regularFeedback.textContent = `${correct} correct. Move the highlighted verbs and check again.`;
+      }
+    }
+
+    regularCheckBtn.addEventListener("click", checkRegularAnswers);
+    regularResetBtn.addEventListener("click", renderRegularActivity);
+    regularShuffleBtn.addEventListener("click", renderRegularActivity);
+
+    renderRegularActivity();
+  </script>
+</body>
+</html>
